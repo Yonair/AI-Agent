@@ -5,7 +5,20 @@ from google import genai
 from google.genai import types
 
 
+def generate_content(client, messages, verbose):
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=messages,
+    )
 
+    if response.usage_metadata is None:
+        raise RuntimeError("Usage metadata is not available.")
+
+    if verbose:
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}\nResponse tokens: {response.usage_metadata.candidates_token_count}")
+        
+
+    print("Response:", response.text)
 
 def main():
     load_dotenv()
@@ -21,6 +34,7 @@ def main():
     parser.add_argument("user_prompt", type=str, help="User prompt")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
+    
 
     messages = [types.Content(
         role="user",
@@ -28,20 +42,28 @@ def main():
 
     prompt = args.user_prompt
 
-    print("User prompt:", prompt)
-    
-    response = client.models.generate_content(
-        model='gemini-2.5-flash', 
-        contents=messages,
-        )
 
-    
-    
-    if response.usage_metadata is None:
-        raise RuntimeError("Usage metadata is not available.")
-    
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}\nResponse tokens: {response.usage_metadata.candidates_token_count}")
+    if args.verbose:
+        print("User prompt:", prompt)
 
-    print("Response:", response.text)
+    generate_content(client, messages, args.verbose)
+    
+
+
 if __name__ == "__main__":
     main()
+
+def generate_content(client, messages, verbose):
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=messages,
+    )
+
+    if response.usage_metadata is None:
+        raise RuntimeError("Usage metadata is not available.")
+
+    if verbose:
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}\nResponse tokens: {response.usage_metadata.candidates_token_count}")
+        
+
+    print("Response:", response.text)
