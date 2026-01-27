@@ -1,6 +1,9 @@
 import os
 from config import max_character_limit
 
+ 
+ 
+
 def get_file_content(working_directory, file_path):
 
     working_dir_abs = os.path.abspath(working_directory)

@@ -3,22 +3,59 @@ import os
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from prompts import system_prompt
+from call_function import available_functions
+from call_function import call_function
+
 
 
 def generate_content(client, messages, verbose):
+   
+    
     response = client.models.generate_content(
         model='gemini-2.5-flash',
         contents=messages,
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt),
     )
 
     if response.usage_metadata is None:
         raise RuntimeError("Usage metadata is not available.")
 
     if verbose:
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}\nResponse tokens: {response.usage_metadata.candidates_token_count}")
-        
+            print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}\nResponse tokens: {response.usage_metadata.candidates_token_count}")
 
-    print("Response:", response.text)
+    if not response.function_calls:
+        print("Response:")
+        print(response.text)
+        return
+    
+    else:
+        function_results = []
+
+        for function_call in response.function_calls:
+            
+            function_call_result = call_function(function_call, verbose=verbose)
+            
+            if not function_call_result.parts:
+               raise Exception("Function call result has no parts.")
+            
+            first_part = function_call_result.parts[0]
+
+            if first_part.function_response is None:
+                raise Exception("Function call returned no function_response")
+
+            response_dict = first_part.function_response.response
+
+            if response_dict is None:
+                raise Exception("Function call returned empty response")
+
+            function_results.append(first_part)
+
+            if verbose:
+                print(f"-> {response_dict}")
+
+    
 
 def main():
     load_dotenv()
@@ -30,10 +67,13 @@ def main():
 
     client = genai.Client(api_key=api_key)
 
+    
     parser = argparse.ArgumentParser(description="Gemini API")
     parser.add_argument("user_prompt", type=str, help="User prompt")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
+    
+    
     
 
     messages = [types.Content(
@@ -46,24 +86,10 @@ def main():
     if args.verbose:
         print("User prompt:", prompt)
 
+    
     generate_content(client, messages, args.verbose)
     
 
 
 if __name__ == "__main__":
     main()
-
-def generate_content(client, messages, verbose):
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=messages,
-    )
-
-    if response.usage_metadata is None:
-        raise RuntimeError("Usage metadata is not available.")
-
-    if verbose:
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}\nResponse tokens: {response.usage_metadata.candidates_token_count}")
-        
-
-    print("Response:", response.text)
