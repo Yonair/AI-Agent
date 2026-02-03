@@ -90,12 +90,9 @@ function_map = {
     }
 
 def call_function(function_call, verbose=False):
-    if verbose:
-        print(f" - Calling function: {function_call.name}({function_call.args})")
-    else:
-        print(f" - Calling function: {function_call.name}")
-    
     function_name = function_call.name or ""
+
+
     if function_name not in function_map:
         return types.Content(
             role="tool",
@@ -109,6 +106,11 @@ def call_function(function_call, verbose=False):
     
     args = dict(function_call.args) if function_call.args else {}
     args["working_directory"] = WORKING_DIR
+
+    if verbose:
+        print(f"Calling function: {function_name}({args})")
+    else:
+        print(f" - Calling function: {function_name}")
 
     function_result = function_map[function_name](**args)
 
